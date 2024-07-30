@@ -17,11 +17,12 @@ public class CompanyServerAppl {
         try {
             ((Persistable) company).restore(FILE_NAME);
         } catch (Exception e) {
-            System.out.println("Could not restore data from file: " + e.getMessage());
+            System.out.println("Failed to restore data from file: " + e.getMessage());
         }
+
         Protocol protocol = new CompanyProtocol(company);
         TcpServer tcpServer = new TcpServer(protocol, PORT);
-        
+
         Thread serverThread = new Thread(tcpServer::run);
         serverThread.start();
 
@@ -31,21 +32,22 @@ public class CompanyServerAppl {
             String command = scanner.nextLine().trim().toLowerCase();
             if ("shutdown".equals(command)) {
                 tcpServer.shutdown();
-                try {
-                    serverThread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
                 break;
             }
         }
         scanner.close();
 
         try {
-            ((Persistable) company).save(FILE_NAME);
-        } catch (Exception e) {
-            System.out.println("Could not save data to file: " + e.getMessage());
+            serverThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); 
         }
-        System.out.println("Server shut down and data saved successfully.");
+
+        try {
+            ((Persistable) company).save(FILE_NAME);
+            System.out.println("Server stopped successfully, data saved.");
+        } catch (Exception e) {
+            System.out.println("Failed to save data to file: " + e.getMessage());
+        }
     }
 }
